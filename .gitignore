@@ -1,0 +1,3 @@
+# exclude the bsds500
+/BSR/
+/BSR/*
