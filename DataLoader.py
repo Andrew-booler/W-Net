@@ -13,7 +13,7 @@ class DataLoader():
     def __init__(self, datapath,mode):
         #image container
         self.raw_data = []
-        #navigate to the image directory
+        #go to the image directory
         images_path = os.path.join(datapath,'images')
         train_image_path = os.path.join(images_path, model)
         train_image_regex = os.path.join(train_image_path, '*.jpg')
