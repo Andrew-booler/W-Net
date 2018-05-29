@@ -16,6 +16,15 @@ if __name__ == '__main__':
             
             #NCuts Loss
             pred,rec_image = model(x)
+            #can be optimized by shrink the A to a one-channel image
+            A = torch.zeros(k.size()[1:])
+            for i in range(pred.size[1]):
+                for j in range(pred.size[2]):
+                    most_likehood = 0
+                    for k in range(pred.size[0]):
+                        if pred[k,i,j] > most_likehood:
+                            most_likehood = pred[k,i,j]
+                            A[i,j] = k
             
             #Reconstruction Loss
             pred,rec_image = model(x)
@@ -23,3 +32,4 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             rec_loss.backward()
             optimizer.step()
+

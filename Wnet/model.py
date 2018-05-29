@@ -125,5 +125,5 @@ class WNet(torch.nn.Module):
             tempf = self.relu2[2i+1](tempf)
             self.feature2 = self.feature2.append(self.bn2[2i+1](tempf))
         self.feature2[-1] = self.reconsconv(self.feature2[-1])
-        return [self.feature1[-1],self.feature2[-1]]
+        return [self.feature2[0],self.feature2[-1]]
 
