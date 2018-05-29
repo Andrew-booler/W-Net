@@ -5,6 +5,8 @@ import os
 import glob
 import numpy as np
 import pdb
+import configure
+import math
 
 class DataLoader():
     #initialization
@@ -26,7 +28,10 @@ class DataLoader():
                 image = image.convert("RGB")
             self.raw_data.append(image)
         #resize and align
-        self.scale_to(224,224)    
+        self.scale_to(224,224)
+        #normalize
+        self.normalize()
+        self.dissim = self.cal_dissim(self.data,self.data.shape)
     
     def scale_to(self, width, height):
         for i in range(len(self.raw_data)):
@@ -34,7 +39,35 @@ class DataLoader():
             self.raw_data[i] = np.stack((image[:,:,0],image[:,:,1],image[:,:,2]),axis = 0)
         self.raw_data = np.stack(self.raw_data,axis = 0)
 
-    def torch_loader():
+    def normalize(self):
+        #just for RGB 8-bit color
+        self.raw_data = self.raw_data.astype(np.float64)/256
+
+    def torch_loader(self):
+        return Data.Dataloader(
+                                dataset = Data.TensorDataset(torch.from_numpy(self.raw_data),torch.from_numpy(self.dissim)),
+                                batch_size = BatchSize,
+                                shuffle = Shuffle,
+                                num_workers = LoadThread
+                            )
+
+    def cal_dissim(self,raw_data,shape):
+        dissim = np.zeros((shape[0],shape[2],shape[3],shape[2],shape[3]))
+        for idx in range(shape[0]):
+            for i in range(shape[2]):
+                for j in range(shape[3]):
+                    dissim[idx,i,j,i,j] = 0.0
+                    for m in range(i):
+                        for n in range(j):
+                            dissim[idx,i,j,m,n] = dissimilarity(raw_data[idx,:,i,j],raw_data[idx,:,m,n])
+                            dissim[idx,m,n,i,j] = dissim[idx,i,j,m,n]
+
+    def dissimilarity(im1,im2):
+        res = 0
+        for i in range(im1.shape[0]):
+            res += (im1[i]-im2[i])**2
+        return math.sqrt(res)
+
         
 loader = DataLoader("/home/andrew/Wnet/BSR/BSDS500/data","train")
 

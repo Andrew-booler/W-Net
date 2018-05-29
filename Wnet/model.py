@@ -73,7 +73,7 @@ class WNet(torch.nn.Module):
             self.uconv2.append(nn.ConvTranspose2d(ChNum[i],ChNum[i-1],ScaleRatio,ScaleRatio,bias = True)
         self.reconsconv = nn.Conv2d(ChNum[1],3,ConvSize,padding = pad,bias = False)
     def forward(self,x):
-        self.feature1 = [x]
+        self.feature1 = x
         #U-Net1
         tempf = self.conv1[0](self.feature1[-1])
         tempf = self.relu1[0](tempf)
@@ -125,5 +125,5 @@ class WNet(torch.nn.Module):
             tempf = self.relu2[2i+1](tempf)
             self.feature2 = self.feature2.append(self.bn2[2i+1](tempf))
         self.feature2[-1] = self.reconsconv(self.feature2[-1])
-        return self.feature2[-1]
+        return [self.feature1[-1],self.feature2[-1]]
 
