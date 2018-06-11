@@ -1,35 +1,44 @@
 import torch
-import configure
 import numpy as np
-import model
+from configure import Config
+from model import WNet
+from Ncuts import NCutsLoss
+from DataLoader import DataLoader
+
+config = Config()
 
 if __name__ == '__main__':
-    dataset = DataLoader(datapath,"train")
+    dataset = DataLoader(config.datapath,"train")
     dataloader = dataset.torch_loader()
     model = WNet()
+    model.cuda()
     #optimizer
-    optimizer = torch.optim.SGD()
-    reconstr = torch.nn.MSELoss(size_average = False)
-    for epoch in range(Maxepoch):
+    optimizer = torch.optim.SGD(model.parameters(),lr = config.init_lr)
+    reconstr = torch.nn.MSELoss(size_average = False).cuda()
+    Ncuts = NCutsLoss().cuda()
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.lr_decay_iter, gamma=config.lr_decay)
+    for epoch in range(config.max_iter):
         print("Epoch: "+str(epoch))
-        for step,(x,dissim) in enumerate(dataloader):
+        scheduler.step()
+        for step,(x) in enumerate(dataloader):
             
             #NCuts Loss
+            x = x[0].cuda()
+            x.requires_grad = False
             pred,rec_image = model(x)
-            #can be optimized by shrink the A to a one-channel image
-            A = torch.zeros(k.size()[1:])
-            for i in range(pred.size[1]):
-                for j in range(pred.size[2]):
-                    most_likehood = 0
-                    for k in range(pred.size[0]):
-                        if pred[k,i,j] > most_likehood:
-                            most_likehood = pred[k,i,j]
-                            A[i,j] = k
+            #pred.cuda()
+            print("forward finished")
+            ncuts_loss = Ncuts(pred,x)
+            print("NCuts Loss: " + str(ncuts_loss))
+            optimizer.zero_grad()
+            ncuts_loss.backward()
+            optimizer.step()
             
             #Reconstruction Loss
             pred,rec_image = model(x)
-            rec_loss = reconstr(x,rec_image)
+            rec_loss = reconstr(rec_image,x)
+            print("Reconstruction Loss: " + str(rec_loss))
             optimizer.zero_grad()
             rec_loss.backward()
             optimizer.step()
-
+    

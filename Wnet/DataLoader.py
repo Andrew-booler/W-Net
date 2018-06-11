@@ -5,8 +5,10 @@ import os
 import glob
 import numpy as np
 import pdb
-import configure
+from configure import Config
 import math
+
+config = Config()
 
 class DataLoader():
     #initialization
@@ -17,7 +19,7 @@ class DataLoader():
         self.raw_data = []
         #navigate to the image directory
         images_path = os.path.join(datapath,'images')
-        train_image_path = os.path.join(images_path, model)
+        train_image_path = os.path.join(images_path, mode)
         train_image_regex = os.path.join(train_image_path, '*.jpg')
         #find all the images
         file_list = glob.glob(train_image_regex)
@@ -28,10 +30,10 @@ class DataLoader():
                 image = image.convert("RGB")
             self.raw_data.append(image)
         #resize and align
-        self.scale_to(224,224)
+        self.scale_to(config.inputsize[0],config.inputsize[1])
         #normalize
         self.normalize()
-        self.dissim = self.cal_dissim(self.data,self.data.shape)
+        
     
     def scale_to(self, width, height):
         for i in range(len(self.raw_data)):
@@ -41,16 +43,17 @@ class DataLoader():
 
     def normalize(self):
         #just for RGB 8-bit color
-        self.raw_data = self.raw_data.astype(np.float64)/256
+        self.raw_data = self.raw_data.astype(np.float)/256
 
     def torch_loader(self):
-        return Data.Dataloader(
-                                dataset = Data.TensorDataset(torch.from_numpy(self.raw_data),torch.from_numpy(self.dissim)),
-                                batch_size = BatchSize,
-                                shuffle = Shuffle,
-                                num_workers = LoadThread
+        return Data.DataLoader(
+                                dataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float()),
+                                batch_size = config.BatchSize,
+                                shuffle = config.Shuffle,
+                                num_workers = config.LoadThread
+				
                             )
-
+#Memory out, depressed
     def cal_dissim(self,raw_data,shape):
         dissim = np.zeros((shape[0],shape[2],shape[3],shape[2],shape[3]))
         for idx in range(shape[0]):
@@ -69,7 +72,7 @@ class DataLoader():
         return math.sqrt(res)
 
         
-loader = DataLoader("/home/andrew/Wnet/BSR/BSDS500/data","train")
+
 
 
 
