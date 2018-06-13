@@ -24,3 +24,7 @@ class Config:
         self.lr_decay = 0.1
         self.lr_decay_iter = 1000
         self.max_iter = 50000
+        #Ncuts loss configure
+        self.radius = 5
+        self.sigmax = 4**2
+        self.sigmai = 10**2

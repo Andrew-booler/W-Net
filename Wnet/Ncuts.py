@@ -2,8 +2,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 from torch.autograd import Function
+from configure import Config
+
+
+
 import time
 import pdb
+import gc
+
+config = Config()
+
 class NCutsLoss(nn.Module):
     def __init__(self):
         super(NCutsLoss,self).__init__()
@@ -26,8 +34,9 @@ class NCutsLoss(nn.Module):
         print("calculating loss")
         for idx in torch.arange(N,dtype=torch.long):
             print("loss: "+str(idx))
-
+            
             xi = x[idx,:,:,:].transpose(0,2).transpose(0,1)
+            xi.requires_grad = False
             #print(torch.__version__)
             segi = seg[idx,:,:,:]
             for k in torch.arange(K,dtype=torch.long):
@@ -38,21 +47,25 @@ class NCutsLoss(nn.Module):
                     for j in torch.arange(Y,dtype=torch.long):
                         #dist1 = (x[i,j]-x).norm(p=2,dim=2).pow(2).mul(seg[k])
                         #print(str(x[i,j].size())+"\t"+str(x.size())+"\t"+str(dist1.size())+"\t"+str(seg[k].size()))
-                        a1 = torch.cuda.memory_allocated()
-                        print("mark")
-                        print(a1 - a)
-                        dist1 = xi.add_(-1,xi[i,j]).norm(p=2,dim=2).pow_(2).mul_(segi[k]).sum().mul_(segi[k,i,j])
+                        assocA1 = torch.zeros(X,Y).cuda()
 
-                        a3 = torch.cuda.memory_allocated()
-                        print(a3-a1)
+                        for m in torch.arange(max(0,i-5),min(X,i+5),dtype=torch.long):
+                            for n in torch.arange(max(0,j-5),min(Y,j+5),dtype=torch.long):
+                                dist = torch.tensor([m-i,n-j],dtype=torch.float).cuda().norm(p=2)
+                                w = torch.tensor(1,dtype=torch.float)
+                                if dist<config.radius:
+                                    w = torch.tensor(0,dtype=torch.float).cuda()
+                                else:
+                                    dist = dist.pow(2).div_(-config.sigmax)
+                                    dissim = (xi[i,j]-xi[m,n]).norm(p=2).div(-config.sigmai)
+                                    w = dist*dissim
+                                assocA1[m,n] = w*segi[k,m,n]
+                        assocA[i,j] = segi[k,i,j]*assocA1.sum()
+                                
+
                         #print(i*j)
                         #pdb.set_trace()
-                        assocA[i,j] = dist1
-                        a4 = torch.cuda.memory_allocated()
-                        print(a4-a3)
-                        del dist1
-                        a5 = torch.cuda.memory_allocated()
-                        print(a5-a4)
+
                 assocV = torch.zeros(X,Y).cuda()
 
                 for i in torch.arange(X,dtype=torch.long):
