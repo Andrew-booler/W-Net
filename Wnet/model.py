@@ -38,8 +38,8 @@ class WNet(torch.nn.Module):
         #module5-8
         for i in range(config.MaxLv,1,-1):
             self.uconv1.append(nn.ConvTranspose2d(config.ChNum[i],config.ChNum[i-1],config.ScaleRatio,config.ScaleRatio,bias = True))
-        self.predconv = nn.Conv2d(config.ChNum[1],config.K,1,bias = True)
-        self.softmax = nn.Softmax(dim=1)
+        self.predconv = nn.Conv2d(config.ChNum[1],config.K,1,bias = False)
+        self.softmax = nn.Softmax(dim=0)
         self.conv1 = torch.nn.ModuleList(self.conv1)
         self.ReLU1 = torch.nn.ModuleList(self.ReLU1)
         self.bn1 = torch.nn.ModuleList(self.bn1)	
