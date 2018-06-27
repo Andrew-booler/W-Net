@@ -72,7 +72,7 @@ class DataLoader():
         print("calculating weights.")
         dissim = np.zeros((shape[0],shape[1],shape[2],shape[3],(config.radius-1)*2+1,(config.radius-1)*2+1))
         
-        padded_data = np.pad(raw_data,((0,0),(0,0),(config.radius,config.radius),(config.radius,config.radius)),'constant')
+        padded_data = np.pad(raw_data,((0,0),(0,0),(config.radius-1,config.radius-1),(config.radius-1,config.radius-1)),'constant')
         for m in range(2*(config.radius-1)+1):
             for n in range(2*(config.radius-1)+1):
                 dissim[:,:,:,:,m,n] = raw_data-padded_data[:,:,m:shape[2]+m,n:shape[3]+n]

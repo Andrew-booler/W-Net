@@ -17,10 +17,10 @@ class WNet(torch.nn.Module):
         self.uconv1 = []
         #module1-5
         for i in range(1,config.MaxLv+1):
-            self.conv1.append(nn.Conv2d(config.ChNum[i-1],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
-            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
         #module6-9
@@ -39,7 +39,9 @@ class WNet(torch.nn.Module):
         for i in range(config.MaxLv,1,-1):
             self.uconv1.append(nn.ConvTranspose2d(config.ChNum[i],config.ChNum[i-1],config.ScaleRatio,config.ScaleRatio,bias = True))
         self.predconv = nn.Conv2d(config.ChNum[1],config.K,1,bias = False)
-        self.softmax = nn.Softmax(dim=0)
+        self.softmax = nn.Softmax2d()
+        self.ReLU1.append(nn.ReLU())
+        self.bn1.append(nn.BatchNorm2d(config.K))
         self.conv1 = torch.nn.ModuleList(self.conv1)
         self.ReLU1 = torch.nn.ModuleList(self.ReLU1)
         self.bn1 = torch.nn.ModuleList(self.bn1)	
@@ -80,7 +82,9 @@ class WNet(torch.nn.Module):
         #module14-17
         for i in range(config.MaxLv,1,-1):
             self.uconv2.append(nn.ConvTranspose2d(config.ChNum[i],config.ChNum[i-1],config.ScaleRatio,config.ScaleRatio,bias = True))
-        self.reconsconv = nn.Conv2d(config.ChNum[1],3,config.ConvSize,padding = config.pad,bias = False)
+        self.reconsconv = nn.Conv2d(config.ChNum[1],3,1,bias = True)
+        self.ReLU2.append(nn.ReLU())
+        self.bn2.append(nn.BatchNorm2d(3))
         self.conv2 = torch.nn.ModuleList(self.conv2)
         self.ReLU2 = torch.nn.ModuleList(self.ReLU2)
         self.bn2 = torch.nn.ModuleList(self.bn2)
@@ -115,10 +119,11 @@ class WNet(torch.nn.Module):
             tempf = self.bn1[2*i](tempf)
             tempf = self.conv1[2*i+1](tempf)
             tempf = self.ReLU1[2*i+1](tempf)
-
+            
             self.feature1.append(self.bn1[2*i+1](tempf))
-        self.feature1[-1] = self.predconv(self.feature1[-1])
-        
+        tempf = self.predconv(self.feature1[-1])
+        tempf = self.ReLU1[-1](tempf)
+        self.feature1[-1] = self.bn1[-1](tempf)
         self.feature2 = [self.softmax(self.feature1[-1])]
         #U-Net2
         
@@ -128,6 +133,7 @@ class WNet(torch.nn.Module):
         tempf = self.conv2[1](tempf)
         tempf = self.ReLU2[1](tempf)
         self.feature2.append(self.bn2[1](tempf))
+
         for i in range(1,config.MaxLv):
             tempf = self.maxpool2[i-1](self.feature2[-1])
             tempf = self.conv2[2*i](tempf)
@@ -147,6 +153,8 @@ class WNet(torch.nn.Module):
             tempf = self.ReLU2[2*i+1](tempf)
             tempf = self.bn2[2*i+1](tempf)            
             self.feature2.append(tempf)
-        self.feature2[-1] = self.reconsconv(self.feature2[-1])
+        tempf = self.reconsconv(self.feature2[-1])
+        tempf = self.ReLU2[-1](tempf)
+        self.feature2[-1] = self.bn2[-1](tempf)
         return [self.feature2[0],self.feature2[-1]]
 

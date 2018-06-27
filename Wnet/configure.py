@@ -13,7 +13,7 @@ class Config:
             self.ChNum.append(self.ChNum[-1]*2)
         #data configure
         self.datapath = "../BSR/BSDS500/data"
-        self.BatchSize = 1
+        self.BatchSize = 10
         self.Shuffle = False
         self.LoadThread = 2
         self.inputsize = [224,224]
