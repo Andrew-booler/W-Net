@@ -48,12 +48,13 @@ class DataLoader():
         self.raw_data = self.raw_data.astype(np.float)/256
 
     def torch_loader(self):
+        mydataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float(),torch.from_numpy(self.weight2).float())
         return Data.DataLoader(
-                                dataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float(),torch.from_numpy(self.weight2).float()),
+                                mydataset,
                                 batch_size = config.BatchSize,
                                 shuffle = config.Shuffle,
-                                num_workers = config.LoadThread
-				
+                                num_workers = config.LoadThread,
+                                pin_memory = True,
                             )
 #Memory out, depressed
     def cal_dissim(self,raw_data,shape):
@@ -76,14 +77,16 @@ class DataLoader():
         for m in range(2*(config.radius-1)+1):
             for n in range(2*(config.radius-1)+1):
                 dissim[:,:,:,:,m,n] = raw_data-padded_data[:,:,m:shape[2]+m,n:shape[3]+n]
+        #for i in range(dissim.shape[0]):
         dissim = np.exp(-np.power(dissim,2).sum(1,keepdims = True)/config.sigmaI**2)
-        dist = np.zeros_like(dissim)
-        for m in range(2*(config.radius-1)+1):
-            for n in range(2*(config.radius-1)+1):
+        dist = np.zeros((2*(config.radius-1)+1,2*(config.radius-1)+1))
+        for m in range(1-config.radius,config.radius):
+            for n in range(1-config.radius,config.radius):
                 if m**2+n**2<config.radius**2:
-                    dist[:,:,:,:,m,n] = np.exp(-(m**2+n**2)/config.sigmaX**2)
+                    dist[m+config.radius-1,n+config.radius-1] = np.exp(-(m**2+n**2)/config.sigmaX**2)
         print("weight calculated.")
-        return np.multiply(dissim,dist)
+        res = np.multiply(dissim,dist)
+        return res
 
     def dissimilarity(im1,im2):
         res = 0

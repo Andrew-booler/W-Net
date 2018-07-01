@@ -13,18 +13,22 @@ class Config:
             self.ChNum.append(self.ChNum[-1]*2)
         #data configure
         self.datapath = "../BSR/BSDS500/data"
-        self.BatchSize = 10
-        self.Shuffle = False
+        self.BatchSize = 8
+        self.Shuffle = True
         self.LoadThread = 2
         self.inputsize = [224,224]
         #partition configure
-        self.K = 3
+        self.K = 6
         #training configure
         self.init_lr = 0.003
         self.lr_decay = 0.1
         self.lr_decay_iter = 1000
         self.max_iter = 50000
+        self.cuda_dev = 2
+        self.check_iter = 1000
         #Ncuts Loss configure
         self.radius = 5
         self.sigmaI = 10
         self.sigmaX = 4
+        #testing configure
+        self.model_tested = "checkpoint_7_1_3_9_epoch_1000"

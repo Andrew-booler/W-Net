@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from configure import Config
+import pdb
 
 config = Config()
 
@@ -10,28 +11,41 @@ class WNet(torch.nn.Module):
         self.feature1 = []
         self.feature2 = []
         #U-Net1
-        self.conv1 = []
-        self.ReLU1 = []
-        self.bn1 = []	
+        #module1
+        self.conv1 = [
+        nn.Conv2d(config.ChNum[0],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False),
+        nn.Conv2d(config.ChNum[1],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False)]
+        self.ReLU1 = [nn.ReLU(),nn.ReLU()]
+        self.bn1 = [nn.BatchNorm2d(config.ChNum[1]),nn.BatchNorm2d(config.ChNum[1])]	
         self.maxpool1 = []
         self.uconv1 = []
-        #module1-5
-        for i in range(1,config.MaxLv+1):
+        #module2-5
+        for i in range(2,config.MaxLv+1):
+            self.conv1.append(nn.Conv2d(config.ChNum[i-1],config.ChNum[i],1,bias = False))
             self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],1,bias = False))
             self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
-        #module6-9
-        for i in range(config.MaxLv-1,0,-1):
-            self.conv1.append(nn.Conv2d(2*config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+        #module6-8
+        for i in range(config.MaxLv-1,1,-1):
+            self.conv1.append(nn.Conv2d(2*config.ChNum[i],config.ChNum[i],1,bias = False))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
-            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],1,bias = False))
+            self.conv1.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU1.append(nn.ReLU())
             self.bn1.append(nn.BatchNorm2d(config.ChNum[i]))
-
+        #module9
+        self.conv1.append(nn.Conv2d(2*config.ChNum[1],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False))
+        self.ReLU1.append(nn.ReLU())
+        self.bn1.append(nn.BatchNorm2d(config.ChNum[1]))
+        self.conv1.append(nn.Conv2d(config.ChNum[1],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False))
+        self.ReLU1.append(nn.ReLU())
+        self.bn1.append(nn.BatchNorm2d(config.ChNum[1]))
         #module1-4
         for i in range(config.MaxLv-1):
             self.maxpool1.append(nn.MaxPool2d(config.ScaleRatio))
@@ -62,20 +76,31 @@ class WNet(torch.nn.Module):
         self.bn2.append(nn.BatchNorm2d(config.ChNum[1]))
         #module11-14
         for i in range(2,config.MaxLv+1):
-            self.conv2.append(nn.Conv2d(config.ChNum[i-1],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i-1],config.ChNum[i],1,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU2.append(nn.ReLU())
             self.bn2.append(nn.BatchNorm2d(config.ChNum[i]))
-            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],1,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU2.append(nn.ReLU())
             self.bn2.append(nn.BatchNorm2d(config.ChNum[i]))
-        #module15-18
-        for i in range(config.MaxLv-1,0,-1):
-            self.conv2.append(nn.Conv2d(2*config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+        #module15-17
+        for i in range(config.MaxLv-1,1,-1):
+            self.conv2.append(nn.Conv2d(2*config.ChNum[i],config.ChNum[i],1,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU2.append(nn.ReLU())
             self.bn2.append(nn.BatchNorm2d(config.ChNum[i]))
-            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],1,bias = False))
+            self.conv2.append(nn.Conv2d(config.ChNum[i],config.ChNum[i],config.ConvSize,padding = config.pad,groups = config.ChNum[i],bias = False))
             self.ReLU2.append(nn.ReLU())
             self.bn2.append(nn.BatchNorm2d(config.ChNum[i]))
+        #module18
+        self.conv2.append(nn.Conv2d(2*config.ChNum[1],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False))
+        self.ReLU2.append(nn.ReLU())
+        self.bn2.append(nn.BatchNorm2d(config.ChNum[1]))
+        self.conv2.append(nn.Conv2d(config.ChNum[1],config.ChNum[1],config.ConvSize,padding = config.pad,bias = False))
+        self.ReLU2.append(nn.ReLU())
+        self.bn2.append(nn.BatchNorm2d(config.ChNum[1]))
         #module10-13
         for i in range(config.MaxLv-1):
             self.maxpool2.append(nn.MaxPool2d(config.ScaleRatio))
@@ -102,25 +127,39 @@ class WNet(torch.nn.Module):
         for i in range(1,config.MaxLv):
 
             tempf = self.maxpool1[i-1](self.feature1[-1])
-            tempf = self.conv1[2*i](tempf)
+            tempf = self.conv1[4*i-2](tempf)
+            tempf = self.conv1[4*i-1](tempf)
             tempf = self.ReLU1[2*i](tempf)
             tempf = self.bn1[2*i](tempf)
-            tempf = self.conv1[2*i+1](tempf)
+            tempf = self.conv1[4*i](tempf)
+            tempf = self.conv1[4*i+1](tempf)
             tempf = self.ReLU1[2*i+1](tempf)
             self.feature1.append(self.bn1[2*i+1](tempf))
-        for i in range(config.MaxLv,2*config.MaxLv-1):
+        for i in range(config.MaxLv,2*config.MaxLv-2):
 
             tempf = self.uconv1[i-config.MaxLv](self.feature1[-1])
             
             tempf = torch.cat((self.feature1[2*config.MaxLv-i-1],tempf),dim=1)
-
-            tempf = self.conv1[2*i](tempf)
+            tempf = self.conv1[4*i-2](tempf)
+            tempf = self.conv1[4*i-1](tempf)
             tempf = self.ReLU1[2*i](tempf)
             tempf = self.bn1[2*i](tempf)
-            tempf = self.conv1[2*i+1](tempf)
+            tempf = self.conv1[4*i](tempf)
+            tempf = self.conv1[4*i+1](tempf)
             tempf = self.ReLU1[2*i+1](tempf)
             
             self.feature1.append(self.bn1[2*i+1](tempf))
+        tempf = self.uconv1[config.MaxLv-2](self.feature1[-1])
+            
+        tempf = torch.cat((self.feature1[1],tempf),dim=1)
+
+        tempf = self.conv1[-2](tempf)
+        tempf = self.ReLU1[4*config.MaxLv-4](tempf)
+        tempf = self.bn1[4*config.MaxLv-4](tempf)
+        tempf = self.conv1[-1](tempf)
+        tempf = self.ReLU1[4*config.MaxLv-3](tempf)
+            
+        self.feature1.append(self.bn1[4*config.MaxLv-3](tempf))
         tempf = self.predconv(self.feature1[-1])
         tempf = self.ReLU1[-1](tempf)
         self.feature1[-1] = self.bn1[-1](tempf)
@@ -136,23 +175,36 @@ class WNet(torch.nn.Module):
 
         for i in range(1,config.MaxLv):
             tempf = self.maxpool2[i-1](self.feature2[-1])
-            tempf = self.conv2[2*i](tempf)
+            tempf = self.conv2[4*i-2](tempf)
+            tempf = self.conv2[4*i-1](tempf)
             tempf = self.ReLU2[2*i](tempf)
             tempf = self.bn2[2*i](tempf)
-            tempf = self.conv2[2*i+1](tempf)
+            tempf = self.conv2[4*i](tempf)
+            tempf = self.conv2[4*i+1](tempf)
             tempf = self.ReLU2[2*i+1](tempf)
             
             self.feature2.append(self.bn2[2*i+1](tempf))
-        for i in range(config.MaxLv,2*config.MaxLv-1):
+        for i in range(config.MaxLv,2*config.MaxLv-2):
             tempf = self.uconv2[i-config.MaxLv](self.feature2[-1])
             tempf = torch.cat((self.feature2[2*config.MaxLv-i-1],tempf),dim=1)
-            tempf = self.conv2[2*i](tempf)
+            tempf = self.conv2[4*i-2](tempf)
+            tempf = self.conv2[4*i-1](tempf)
             tempf = self.ReLU2[2*i](tempf)
             tempf = self.bn2[2*i](tempf)
-            tempf = self.conv2[2*i+1](tempf)
+            tempf = self.conv2[4*i](tempf)
+            tempf = self.conv2[4*i+1](tempf)
             tempf = self.ReLU2[2*i+1](tempf)
             tempf = self.bn2[2*i+1](tempf)            
             self.feature2.append(tempf)
+        tempf = self.uconv2[config.MaxLv-2](self.feature2[-1])
+        tempf = torch.cat((self.feature2[1],tempf),dim=1)
+        tempf = self.conv2[-2](tempf)
+        tempf = self.ReLU2[4*config.MaxLv-4](tempf)
+        tempf = self.bn2[4*config.MaxLv-4](tempf)
+        tempf = self.conv2[-1](tempf)
+        tempf = self.ReLU2[4*config.MaxLv-3](tempf)
+        tempf = self.bn2[4*config.MaxLv-3](tempf)            
+        self.feature2.append(tempf)
         tempf = self.reconsconv(self.feature2[-1])
         tempf = self.ReLU2[-1](tempf)
         self.feature2[-1] = self.bn2[-1](tempf)

@@ -39,39 +39,22 @@ class NCutsLoss(nn.Module):
 
     def forward(self, seg, weight):
 #too many values to unpack
-        N = seg.size()[0]
         K = torch.tensor(seg.size()[1])
-        X = seg.size()[2]
-        Y = seg.size()[3]
-        Kconst = K.float()
-        Kconst = Kconst.cuda(1)
-
-        Nassoc = torch.zeros(K.int().item())
-        Nassoc = Nassoc.cuda(1)
-        loss = torch.zeros(1)
-        loss = loss.cuda(1)
-        weight = weight.cuda(1)
+        Kconst = K.float().cuda(config.cuda_dev)
         #pdb.set_trace()
-
-        print("calculating loss")
-        print(seg[0,0].sum())
-        print(seg[0,1].sum())
-        print(seg[0,2].sum())
-        cropped_seg = self.crop_seg(weight).cuda(1)
-
-        multi1 = cropped_seg.mul(weight)
+        cropped_seg = torch.zeros(seg.size()[0],seg.size()[1],seg.size()[2],seg.size()[3],(config.radius-1)*2+1,(config.radius-1)*2+1).cuda(config.cuda_dev)
+        padding_size = (config.radius,config.radius,config.radius,config.radius)
+        padded_seg = torch.nn.functional.pad(seg,padding_size)
+        for m in torch.arange((config.radius-1)*2+1,dtype=torch.long):
+            for n in torch.arange((config.radius-1)*2+1,dtype=torch.long):
+                cropped_seg[:,:,:,:,m,n].copy_(padded_seg[:,:,m:m+seg.size()[2],n:n+seg.size()[3]])
         
-        sum1 = multi1.sum(-1).sum(-1)
-        multi2 = sum1.mul(seg)
-        
+        multi2 = cropped_seg.mul(weight).sum(-1).sum(-1).mul(seg)
+        multi3 = weight.sum(-1).sum(-1).mul(seg)
         assocA = multi2.sum(-1).sum(-1)
-        sum1 = weight.sum(-1).sum(-1)
-        
-        multi1 = sum1.mul(seg)
-        assocV = multi1.sum(-1).sum(-1)
-
-        assoc = assocA.div(assocV)
-        return (Kconst - assoc.sum(-1)).sum()
+        assocV = multi3.sum(-1).sum(-1)
+        assoc = assocA.div(assocV).sum(-1)
+        return (Kconst - assoc).sum()
         '''
         for idx in torch.arange(N,dtype=torch.long):
             print("loss: "+str(idx))
@@ -115,14 +98,13 @@ class NCutsLoss(nn.Module):
         '''
         
     def crop_seg(self,seg):
-        cropped_seg = torch.zeros(seg.size()[0],seg.size()[1],seg.size()[2],seg.size()[3],config.radius*2+1,config.radius*2+1)
+        cropped_seg = torch.zeros(seg.size()[0],seg.size()[1],seg.size()[2],seg.size()[3],(config.radius-1)*2+1,(config.radius-1)*2+1)
         padding_size = (config.radius,config.radius,config.radius,config.radius)
         padded_seg = torch.nn.functional.pad(seg,padding_size)
-        print(3)
         for m in torch.arange((config.radius-1)*2+1,dtype=torch.long):
             for n in torch.arange((config.radius-1)*2+1,dtype=torch.long):
                 cropped_seg[:,:,:,:,m,n].copy_(padded_seg[:,:,m:m+seg.size()[2],n:n+seg.size()[3]])
-	return cropped_seg
+        return cropped_seg
 
 def get_gpu_memory_map():
     """Get the current gpu usage.
