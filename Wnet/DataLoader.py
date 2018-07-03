@@ -17,6 +17,7 @@ class DataLoader():
     def __init__(self, datapath,mode):
         #image container
         self.raw_data = []
+        self.mode = mode
         #navigate to the image directory
         images_path = os.path.join(datapath,'images')
         train_image_path = os.path.join(images_path, mode)
@@ -34,7 +35,8 @@ class DataLoader():
         #normalize
         self.normalize()
         #calculate weights by 2
-        self.weight2 = self.cal_weight(self.raw_data, self.raw_data.shape)
+        if(mode == "train"):
+            self.weight2 = self.cal_weight(self.raw_data, self.raw_data.shape)
         
     
     def scale_to(self, width, height):
@@ -48,13 +50,17 @@ class DataLoader():
         self.raw_data = self.raw_data.astype(np.float)/256
 
     def torch_loader(self):
-        mydataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float(),torch.from_numpy(self.weight2).float())
+        mydataset = None
+        if (self.mode == "train"):
+            mydataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float(),torch.from_numpy(self.weight2).float())
+        else:
+            mydataset = Data.TensorDataset(torch.from_numpy(self.raw_data).float())
         return Data.DataLoader(
                                 mydataset,
                                 batch_size = config.BatchSize,
                                 shuffle = config.Shuffle,
                                 num_workers = config.LoadThread,
-                                pin_memory = True,
+                                pin_memory = False,
                             )
 #Memory out, depressed
     def cal_dissim(self,raw_data,shape):
