@@ -91,6 +91,7 @@ class DataLoader():
                 if m**2+n**2<config.radius**2:
                     dist[m+config.radius-1,n+config.radius-1] = np.exp(-(m**2+n**2)/config.sigmaX**2)
         print("weight calculated.")
+        pdb.set_trace()
         res = np.multiply(dissim,dist)
         return res
 

@@ -38,7 +38,7 @@ class NCutsLoss(nn.Module):
             
 
     def forward(self, seg, weight):
-#too many values to unpack
+        #too many values to unpack
         K = torch.tensor(seg.size()[1])
         Kconst = K.float().cuda(seg.device)
         #pdb.set_trace()

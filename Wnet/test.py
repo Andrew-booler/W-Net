@@ -28,16 +28,19 @@ if __name__ == '__main__':
                     
         x = x.cuda(config.cuda_dev)
         pred,rec_image = model(x)
-        seg = (pred.argmax(dim = 1).to(torch.float)/3*255).cpu().detach().numpy()
+        seg = (pred.argmax(dim = 1)).cpu().detach().numpy()
         rec_image = rec_image.cpu().detach().numpy()*255
         x = x.cpu().detach().numpy()*255
         x = np.transpose(x.astype(np.uint8),(0,2,3,1))
         rec_image = np.transpose(rec_image.astype(np.uint8),(0,2,3,1))
-        seg = seg.astype(np.uint8)
+        color_map = lambda c: config.color_lib[c]
+        cmap = np.vectorize(color_map)
+        seg = np.moveaxis(np.array(cmap(seg)),0,-1).astype(np.uint8)
         #pdb.set_trace()
         for i in range(seg.shape[0]):
             Image.fromarray(x[i]).save("./input_"+str(step+1)+"_"+str(i)+".jpg")
-            Image.fromarray(seg[i]).save("./seg_"+str(step+1)+"_"+str(i)+".jpg")
+            for j in range(seg.shape[-1]):
+                Image.fromarray(seg[i,:,:,j]).save("./seg_"+str(step+1)+"_"+str(i)+"_"+str(j)+".jpg")
             Image.fromarray(rec_image[i]).save("./rec_"+str(step+1)+"_"+str(i)+".jpg")
 
 
