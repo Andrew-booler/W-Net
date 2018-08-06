@@ -12,8 +12,10 @@ class Config:
         for i in range(self.MaxLv-1):
             self.ChNum.append(self.ChNum[-1]*2)
         #data configure
-        self.datapath = "../BSR/BSDS500/data"
-        self.BatchSize = 6
+        self.datapath = "../VOC2012"
+        self.imagefolder = "JPEGImages"
+        self.imagelist = "ImageSets/Segmentation/train.txt"
+        self.BatchSize = 34
         self.Shuffle = True
         self.LoadThread = 2
         self.inputsize = [224,224]
@@ -25,14 +27,14 @@ class Config:
         self.lr_decay_iter = 1000
         self.max_iter = 50000
         self.cuda_dev = 0 
-        self.cuda_dev_list = [0]
+        self.cuda_dev_list = [0,1]
         self.check_iter = 1000
         #Ncuts Loss configure
         self.radius = 5
-        self.sigmaI = 255
+        self.sigmaI = 10
         self.sigmaX = 4
         #testing configure
-        self.model_tested = "./checkpoint_7_28_18_44_epoch_1000"
+        self.model_tested = "./checkpoint_7_31_7_18_epoch_2000"
         #color library
         self.color_lib = []
         for r in [0,1]:

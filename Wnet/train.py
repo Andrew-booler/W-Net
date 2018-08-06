@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from configure import Config
-from model import WNet
+from model import Net
 from Ncuts import NCutsLoss
 from DataLoader import DataLoader
 import time
@@ -12,8 +12,9 @@ config = Config()
 if __name__ == '__main__':
     dataset = DataLoader(config.datapath,"train")
     dataloader = dataset.torch_loader()
-    model = torch.nn.DataParallel(WNet(),config.cuda_dev_list)
+    model = torch.nn.DataParallel(Net(True),config.cuda_dev_list)
     model.cuda(config.cuda_dev)
+    model.train()
     #optimizer
     optimizer = torch.optim.SGD(model.parameters(),lr = config.init_lr)
     #reconstr = torch.nn.MSELoss().cuda(config.cuda_dev)
@@ -24,17 +25,36 @@ if __name__ == '__main__':
         scheduler.step()
         Ave_Ncuts = 0.0
         #Ave_Rec = 0.0
-        for step,[x,w] in enumerate(dataloader):
+        t_load = 0.0
+        t_forward = 0.0
+        t_loss = 0.0
+        t_backward = 0.0
+        t_adjust = 0.0
+        t_reset = 0.0
+        for step,[x,w,sw] in enumerate(dataloader):
             #NCuts Loss
+            tick = time.time()
             x = x.cuda(config.cuda_dev)
             w = w.cuda(config.cuda_dev)
-            pred,rec_image = model(x)
+            sw = sw.cuda(config.cuda_dev)
+            t_load += time.time()-tick
+            tick = time.time()
+            pred,pad_pred = model(x)
+            t_forward += time.time()-tick
             #pred.cuda()
-            ncuts_loss = Ncuts(pred,w).sum()
+            tick = time.time()
+            ncuts_loss = Ncuts(pred,pad_pred,w,sw).sum()
+            t_loss += time.time()-tick
+            tick = time.time()
             Ave_Ncuts = (Ave_Ncuts * step + ncuts_loss.item())/(step+1)
             optimizer.zero_grad()
+            t_reset += time.time()-tick
+            tick = time.time()
             ncuts_loss.backward()
+            t_backward += time.time()-tick
+            tick = time.time()
             optimizer.step()
+            t_adjust += time.time()-tick
             #Reconstruction Loss
             '''pred,rec_image = model(x)
             rec_loss = reconstr(rec_image,x)
@@ -42,7 +62,8 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             rec_loss.backward()
             optimizer.step()'''
-        print("Ncuts loss: "+str(Ave_Ncuts))
+        t_total = t_load+t_reset+t_forward+t_loss+t_backward+t_adjust
+        print("Ncuts loss: "+str(Ave_Ncuts)+";total time: "+str(t_total)+";forward: "+str(t_forward/t_total)+";loss: "+str(t_loss/t_total)+";backward: "+str(t_backward/t_total)+";adjust: "+str(t_adjust/t_total)+";reset&load: "+str(t_reset)+"&"+str(t_load))
         #print("Reconstruction loss: "+str(Ave_Rec))
         if (epoch+1)%1000 == 0:
             localtime = time.localtime(time.time())
