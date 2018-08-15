@@ -21,16 +21,17 @@ class DataLoader():
         self.mode = mode
         #navigate to the image directory
         #images_path = os.path.join(datapath,'images')
-        train_image_path = os.path.join(datapath,config.imagefolder,mode)
-        
-        #train_image_regex = os.path.join(train_image_path, '*.jpg')
-        #find all the images
-        train_list_file = os.path.join(datapath,config.imagelist)
+        train_image_path = os.path.join(datapath,mode)
         file_list = []
-        with open(train_list_file) as f:
-            for line in f.readlines():
-                file_list.append(os.path.join(train_image_path,line[0:-1]+".jpg"))
-        #file_list = glob.glob(train_image_regex)
+        if(mode != "train"):
+            train_image_regex = os.path.join(train_image_path, '*.jpg')
+            file_list = glob.glob(train_image_regex)
+        #find all the images
+        else:
+            train_list_file = os.path.join("../VOC2012",config.imagelist)
+            with open(train_list_file) as f:
+                for line in f.readlines():
+                    file_list.append(os.path.join(train_image_path,line[0:-1]+".jpg"))
         #load the images
         for file_name in file_list:
             with Image.open(file_name) as image:
@@ -40,11 +41,12 @@ class DataLoader():
         #resize and align
         self.scale()
         #normalize
-        self.normalize()
+        self.transfer()
         #calculate weights by 2
         if(mode == "train"):
-            self.dataset = self.get_dataset(self.raw_data, self.raw_data.shape,45)
-        
+            self.dataset = self.get_dataset(self.raw_data, self.raw_data.shape,75)
+        else:
+            self.dataset = self.get_dataset(self.raw_data, self.raw_data.shape,75)
     
     def scale(self):
         for i in range(len(self.raw_data)):
@@ -52,9 +54,9 @@ class DataLoader():
             self.raw_data[i] = np.stack((image[:,:,0],image[:,:,1],image[:,:,2]),axis = 0)
         self.raw_data = np.stack(self.raw_data,axis = 0)
 
-    def normalize(self):
+    def transfer(self):
         #just for RGB 8-bit color
-        self.raw_data = self.raw_data.astype(np.float)/256
+        self.raw_data = self.raw_data.astype(np.float)
 
     def torch_loader(self):
         return Data.DataLoader(
@@ -62,7 +64,7 @@ class DataLoader():
                                 batch_size = config.BatchSize,
                                 shuffle = config.Shuffle,
                                 num_workers = config.LoadThread,
-                                pin_memory = False,
+                                pin_memory = True,
                             )
 #Memory out, depressed
     def cal_dissim(self,raw_data,shape):
@@ -92,11 +94,11 @@ class DataLoader():
             for n in range(1-config.radius,config.radius):
                 if m**2+n**2<config.radius**2:
                     dist[m+config.radius-1,n+config.radius-1] = cp.exp(-(m**2+n**2)/config.sigmaX**2)
-        for m in range(0,config.radius):
-            dissim[:,:,m,:,0:config.radius-m,:]=0.0
-            dissim[:,:,-1-m,:,-1-m:-1,:]=0.0
-            dissim[:,:,:,m,:,0:config.radius-m]=0.0
-            dissim[:,:,:,-1-m,:,-1-m:-1]=0.0
+        for m in range(0,config.radius-1):
+            dissim[:,:,m,:,0:config.radius-1-m,:]=0.0
+            dissim[:,:,-1-m,:,m-config.radius+1:-1,:]=0.0
+            dissim[:,:,:,m,:,0:config.radius-1-m]=0.0
+            dissim[:,:,:,-1-m,:,m-config.radius+1:-1]=0.0
         print("weight calculated.")
         res = cp.multiply(dissim,dist)
         del dissim,data,padded_data,dist
@@ -104,18 +106,16 @@ class DataLoader():
 
     def get_dataset(self,raw_data,shape,batch_size):
         dataset = []
-        cp.cuda.Device(config.cuda_dev).use()
         for batch_id in range(0,shape[0],batch_size):
             print(batch_id)
             batch = raw_data[batch_id:min(shape[0],batch_id+batch_size)]
             if(self.mode == "train"):
                 tmp_weight = self.cal_weight(batch,batch.shape)
-                sum_weight = cp.asnumpy(tmp_weight.sum(-1).sum(-1))
                 weight = cp.asnumpy(tmp_weight)
-                dataset.append(Data.TensorDataset(torch.from_numpy(batch).float(),torch.from_numpy(weight).float(),torch.from_numpy(sum_weight).float()))
+                dataset.append(Data.TensorDataset(torch.from_numpy(batch/256).float(),torch.from_numpy(weight).float()))
                 del tmp_weight
             else:
-                dataset.append(Data.TensorDataset(torch.from_numpy(batch).float()))
+                dataset.append(Data.TensorDataset(torch.from_numpy(batch/256).float()))
         cp.get_default_memory_pool().free_all_blocks()
         return Data.ConcatDataset(dataset)
 

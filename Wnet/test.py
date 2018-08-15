@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 from configure import Config
-from model import Net
+from model import WNet
 from Ncuts import NCutsLoss
 from DataLoader import DataLoader
 import time
@@ -11,23 +11,24 @@ import pdb
 from PIL import Image
 
 config = Config()
+os.environ["CUDA_VISIBLE_DEVICES"]=config.cuda_dev_list
 if __name__ == '__main__':
-    dataset = DataLoader(config.datapath,"test")
+    dataset = DataLoader(config.bsds,"test")
     dataloader = dataset.torch_loader()
-    model = Net(True)
-    model.cuda(config.cuda_dev)
+    model = WNet()
+    model.cuda()
     model.eval()
     optimizer = torch.optim.SGD(model.parameters(),lr = config.init_lr)
     #optimizer
     with open(config.model_tested,'rb') as f:
         para = torch.load(f,"cuda:0")
-        model.load_state_dict(para['state_dict'],False)
+        model.load_state_dict(para['state_dict'])
     for step,[x] in enumerate(dataloader):
         print('Step' + str(step+1))
             #NCuts Loss
                     
-        x = x.cuda(config.cuda_dev)
-        pred = model(x)
+        x = x.cuda()
+        pred,pad_pred = model(x)
         seg = (pred.argmax(dim = 1)).cpu().detach().numpy()
         x = x.cpu().detach().numpy()*255
         x = np.transpose(x.astype(np.uint8),(0,2,3,1))

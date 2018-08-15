@@ -39,19 +39,22 @@ class NCutsLoss(nn.Module):
 
     def forward(self, seg, padded_seg, weight,sum_weight):
         #too many values to unpack
-        K = torch.tensor(seg.size()[1])
-        Kconst = K.float().cuda(seg.device)
-        cropped_seg = torch.zeros(seg.size()[0],seg.size()[1],seg.size()[2],seg.size()[3],(config.radius-1)*2+1,(config.radius-1)*2+1).cuda(seg.device)
+        
+        cropped_seg = []
         for m in torch.arange((config.radius-1)*2+1,dtype=torch.long):
+            column = []
             for n in torch.arange((config.radius-1)*2+1,dtype=torch.long):
-                cropped_seg[:,:,:,:,m,n]=padded_seg[:,:,m:m+seg.size()[2],n:n+seg.size()[3]].clone()
+                column.append(padded_seg[:,:,m:m+seg.size()[2],n:n+seg.size()[3]].clone())
+            cropped_seg.append(torch.stack(column,4))
+        cropped_seg = torch.stack(cropped_seg,4)
         multi1 = cropped_seg.mul(weight)
         multi2 = multi1.view(multi1.shape[0],multi1.shape[1],multi1.shape[2],multi1.shape[3],-1).sum(-1).mul(seg)
         multi3 = sum_weight.mul(seg)
         assocA = multi2.view(multi2.shape[0],multi2.shape[1],-1).sum(-1)
         assocV = multi3.view(multi3.shape[0],multi3.shape[1],-1).sum(-1)
         assoc = assocA.div(assocV).sum(-1)
-        return Kconst - assoc
+        
+        return torch.add(-assoc,config.K)
         '''
         for idx in torch.arange(N,dtype=torch.long):
             print("loss: "+str(idx))
