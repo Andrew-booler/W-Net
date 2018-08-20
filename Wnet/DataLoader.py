@@ -66,21 +66,11 @@ class DataLoader():
                                 num_workers = config.LoadThread,
                                 pin_memory = True,
                             )
-#Memory out, depressed
-    def cal_dissim(self,raw_data,shape):
-        dissim = np.zeros((shape[0],shape[2],shape[3],shape[2],shape[3]))
-        for idx in range(shape[0]):
-            for i in range(shape[2]):
-                for j in range(shape[3]):
-                    dissim[idx,i,j,i,j] = 0.0
-                    for m in range(i):
-                        for n in range(j):
-                            dissim[idx,i,j,m,n] = dissimilarity(raw_data[idx,:,i,j],raw_data[idx,:,m,n])
-                            dissim[idx,m,n,i,j] = dissim[idx,i,j,m,n]
 
     def cal_weight(self,raw_data,shape):
         #According to the weight formula, when Euclidean distance < r,the weight is 0, so reduce the dissim matrix size to radius-1 to save time and space.
         print("calculating weights.")
+
         dissim = cp.zeros((shape[0],shape[1],shape[2],shape[3],(config.radius-1)*2+1,(config.radius-1)*2+1))
         data = cp.asarray(raw_data)
         padded_data = cp.pad(data,((0,0),(0,0),(config.radius-1,config.radius-1),(config.radius-1,config.radius-1)),'constant')

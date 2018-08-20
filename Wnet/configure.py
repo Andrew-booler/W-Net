@@ -15,7 +15,7 @@ class Config:
         self.pascal = "../VOC2012/JPEGImages"
         self.bsds = "../BSR/BSDS500/data/images/"
         self.imagelist = "ImageSets/Segmentation/train.txt"
-        self.BatchSize = 20
+        self.BatchSize = 25
         self.Shuffle = True
         self.LoadThread = 4
         self.inputsize = [224,224]
@@ -27,17 +27,17 @@ class Config:
         self.lr_decay_iter = 1000
         self.max_iter = 50000
         self.cuda_dev = 0 
-        self.cuda_dev_list = "2,3"
+        self.cuda_dev_list = "0,1"
         self.check_iter = 1000
         #Ncuts Loss configure
         self.radius = 4
         self.sigmaI = 10
         self.sigmaX = 4
         #testing configure
-        self.model_tested = "./checkpoint_8_14_12_38_epoch_2000"
+        self.model_tested = "./checkpoint_8_19_13_11_epoch_1500"
         #color library
         self.color_lib = []
-        for r in [0,1]:
-            for g in [0,1]:
-                for b in [0,1]:
-                    self.color_lib.append((255*r,255*g,255*b))
+        for r in range(0,256,64):
+            for g in range(0,256,64):
+                for b in range(0,256,64):
+                    self.color_lib.append((r,g,b))
