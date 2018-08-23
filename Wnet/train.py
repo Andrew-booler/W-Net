@@ -6,7 +6,6 @@ from DataLoader import DataLoader
 from Ncuts import NCutsLoss
 import time
 import os
-import pdb
 
 config = Config()
 os.environ["CUDA_VISIBLE_DEVICES"]=config.cuda_dev_list
@@ -40,6 +39,11 @@ if __name__ == '__main__':
             #tick = time.time()
             x = x.cuda()
             w = w.cuda()
+            #for m in torch.arange(50,70,dtype=torch.long):
+
+            #    print(m)
+            #    for n in torch.arange(50,70,dtype= torch.long):
+            #        print(w[5,0,m,n])
             sw = w.sum(-1).sum(-1)
             #t_load += time.time()-tick
             #tick = time.time()

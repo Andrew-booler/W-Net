@@ -45,58 +45,24 @@ class NCutsLoss(nn.Module):
             for n in torch.arange((config.radius-1)*2+1,dtype=torch.long):
                 column.append(padded_seg[:,:,m:m+seg.size()[2],n:n+seg.size()[3]].clone())
             cropped_seg.append(torch.stack(column,4))
-            del column
         cropped_seg = torch.stack(cropped_seg,4)
-        pdb.set_trace()
+        #for m in torch.arange(50,70,dtype=torch.long):
+
+        #    print(m)
+        #    for n in torch.arange(50,70,dtype= torch.long):
+        #        print(weight[5,0,m,n])
         multi1 = cropped_seg.mul(weight)
-        multi2 = multi1.view(multi1.shape[0],multi1.shape[1],multi1.shape[2],multi1.shape[3],-1).sum(-1).mul(seg)
+        multi2 = multi1.sum(-1).sum(-1).mul(seg)
         multi3 = sum_weight.mul(seg)
+        #print("=============================================================================")
+        #for a in [0,1]:
+        #    print(multi2[5,0,a*10+50:a*10+60,50:60])
+        #    print(multi2[5,0,a*10+50:a*10+60,60:70])
         assocA = multi2.view(multi2.shape[0],multi2.shape[1],-1).sum(-1)
         assocV = multi3.view(multi3.shape[0],multi3.shape[1],-1).sum(-1)
         assoc = assocA.div(assocV).sum(-1)
         
         return torch.add(-assoc,config.K)
-        '''
-        for idx in torch.arange(N,dtype=torch.long):
-            print("loss: "+str(idx))
-            
-            xi = x[idx,:,:,:].transpose(0,2).transpose(0,1)
-            plain_x = xi.reshape(-1,3)
-            self.gpu_room_update()
-            capacity = 0
-            chunks = []
-            for ratio in self.gpu_room_list[:-1]:
-                chunks.append(ratio*plain_x.size()[0])
-                capacity += ratio*plain_x.size()[0]
-            chunks.append(plain_x.size()[0]-capacity)
-            gpu_num = len(self.gpu_list)
-            xj = list(torch.cuda.comm.scatter(plain_x,self.gpu_list,chunks))
-            xi = list(torch.cuda.comm.broadcast(xi,self.gpu_list))
-            #print(torch.__version__)
-            segj = list(torch.cuda.comm.scatter(seg.reshape(-1)[idx,:,:,:],self.gpu_list,chunks))
-            segi = list(torch.cuda.comm.broadcast(seg[idx,:,:,:],self.gpu_list))
-            for k in torch.arange(K,dtype=torch.long):
-                for i in range(gpu_num):
-                
-                    
-
-                        #dist1 = (x[i,j]-x).norm(p=2,dim=2).pow(2).mul(seg[k])
-                        #print(str(x[i,j].size())+"\t"+str(x.size())+"\t"+str(dist1.size())+"\t"+str(seg[k].size()))
-
-                    dist1 = xi.add_(-1,xi[i,j]).norm(p=2,dim=2).pow_(2).mul_(segi[k]).sum().mul_(segi[k,i,j])
-                assocA[i,j] = dist1
-                assocV = torch.zeros(X,Y).cuda()
-
-                for i in torch.arange(X,dtype=torch.long):
-                    for j in torch.arange(Y,dtype=torch.long):
-                        temp = (xi[i,j]-xi).norm(p=2,dim=2).pow(2)
-                        assocV[i,j] = torch.mul(segi[k,i,j],temp.sum()).cuda()
-                Nassoc[k] = assocA.sum().div(assocV.sum()).cuda()
-            print(Kconst)
-            print(Nassoc)
-            loss += Kconst - Nassoc.sum()
-        return loss
-        '''
         
     '''def crop_seg(self,seg):
         cropped_seg = torch.zeros(seg.size()[0],seg.size()[1],seg.size()[2],seg.size()[3],(config.radius-1)*2+1,(config.radius-1)*2+1)

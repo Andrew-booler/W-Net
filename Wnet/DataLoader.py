@@ -42,6 +42,7 @@ class DataLoader():
         self.scale()
         #normalize
         self.transfer()
+        
         #calculate weights by 2
         if(mode == "train"):
             self.dataset = self.get_dataset(self.raw_data, self.raw_data.shape,75)
@@ -57,6 +58,8 @@ class DataLoader():
     def transfer(self):
         #just for RGB 8-bit color
         self.raw_data = self.raw_data.astype(np.float)
+        #for i in range(self.raw_data.shape[0]):
+        #    Image.fromarray(self.raw_data[i].swapaxes(0,-1).astype(np.uint8)).save("./reconstruction/input_"+str(i)+".jpg")
 
     def torch_loader(self):
         return Data.DataLoader(
@@ -78,20 +81,26 @@ class DataLoader():
             for n in range(2*(config.radius-1)+1):
                 dissim[:,:,:,:,m,n] = data-padded_data[:,:,m:shape[2]+m,n:shape[3]+n]
         #for i in range(dissim.shape[0]):
-        dissim = cp.exp(-cp.power(dissim,2).sum(1,keepdims = True)/config.sigmaI**2)
+        #dissim = -cp.power(dissim,2).sum(1,keepdims = True)/config.sigmaI/config.sigmaI
+        temp_dissim = cp.exp(-cp.power(dissim,2).sum(1,keepdims = True)/config.sigmaI**2)
         dist = cp.zeros((2*(config.radius-1)+1,2*(config.radius-1)+1))
         for m in range(1-config.radius,config.radius):
             for n in range(1-config.radius,config.radius):
                 if m**2+n**2<config.radius**2:
                     dist[m+config.radius-1,n+config.radius-1] = cp.exp(-(m**2+n**2)/config.sigmaX**2)
-        for m in range(0,config.radius-1):
-            dissim[:,:,m,:,0:config.radius-1-m,:]=0.0
-            dissim[:,:,-1-m,:,m-config.radius+1:-1,:]=0.0
-            dissim[:,:,:,m,:,0:config.radius-1-m]=0.0
-            dissim[:,:,:,-1-m,:,m-config.radius+1:-1]=0.0
+        #for m in range(0,config.radius-1):
+        #    temp_dissim[:,:,m,:,0:config.radius-1-m,:]=0.0
+        #    temp_dissim[:,:,-1-m,:,m-config.radius+1:-1,:]=0.0
+        #    temp_dissim[:,:,:,m,:,0:config.radius-1-m]=0.0
+        #    temp_dissim[:,:,:,-1-m,:,m-config.radius+1:-1]=0.0
         print("weight calculated.")
-        res = cp.multiply(dissim,dist)
-        del dissim,data,padded_data,dist
+        res = cp.multiply(temp_dissim,dist)
+        #for m in range(50,70):
+
+        #    print(m)
+        #    for n in range(50,70):
+        #        print(dissim[5,0,m,n])
+        #print(dist)
         return res
 
     def get_dataset(self,raw_data,shape,batch_size):

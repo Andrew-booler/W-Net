@@ -15,12 +15,12 @@ class Config:
         self.pascal = "../VOC2012/JPEGImages"
         self.bsds = "../BSR/BSDS500/data/images/"
         self.imagelist = "ImageSets/Segmentation/train.txt"
-        self.BatchSize = 25
+        self.BatchSize = 6
         self.Shuffle = True
         self.LoadThread = 4
         self.inputsize = [224,224]
         #partition configure
-        self.K = 6
+        self.K = 64
         #training configure
         self.init_lr = 0.05
         self.lr_decay = 0.1
@@ -34,10 +34,10 @@ class Config:
         self.sigmaI = 10
         self.sigmaX = 4
         #testing configure
-        self.model_tested = "./checkpoint_8_19_13_11_epoch_1500"
+        self.model_tested = "./checkpoint_8_23_13_0_epoch_2000"
         #color library
         self.color_lib = []
-        for r in range(0,256,64):
-            for g in range(0,256,64):
-                for b in range(0,256,64):
+        for r in range(0,256,128):
+            for g in range(0,256,128):
+                for b in range(0,256,128):
                     self.color_lib.append((r,g,b))
